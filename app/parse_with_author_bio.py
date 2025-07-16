@@ -118,11 +118,19 @@ def get_all_pages_quotes() -> list[Quote]:
 
 
 def write_quotes_to_csv(quotes: list[Quote], output_csv_path: str) -> None:
+    rows = []
+    for quote in quotes:
+        # Get tuple without author_data ("text", "author", "tags")
+        tuple_quote = astuple(quote)[-1]
+        # Tags list from list to str
+        tags_list = tuple_quote[-1]
+        fixed = tuple_quote[:-1] + (", ".join(tags_list),)
+        rows.append(fixed)
+
     with open(output_csv_path, "w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(QUOTE_FIELDS_WITHOUT_AUTHOR_DATA)
-        # Get tuple without author_data ("text", "author", "tags")
-        writer.writerows([astuple(quote)[:-1] for quote in quotes])
+        writer.writerows(rows)
     logging.info("Quotes written to csv...!")
 
 
