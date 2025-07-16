@@ -1,4 +1,6 @@
 import csv
+import logging
+import sys
 from dataclasses import dataclass, fields, astuple
 from urllib.parse import urljoin
 
@@ -18,6 +20,16 @@ class Quote:
 
 
 QUOTE_FIELDS = [field.name for field in fields(Quote)]
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("app.log", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout)
+    ],
+)
+
 
 
 def parse_one_quote(quote: Tag) -> Quote:
@@ -56,13 +68,13 @@ def get_quotes_from_page(page_soup: BeautifulSoup) -> list[Quote]:
 
 def get_all_pages_quotes() -> list[Quote]:
     # Main Page
-    print("Parse first page...")
+    logging.info("Parse first page...")
     page_soup = get_page_soup(BASE_URL)
     all_quotes = get_quotes_from_page(page_soup)
     # Next page
     next_page_soup = get_next_page_soup(page_soup)
     while next_page_soup:
-        print("Parse next page...")
+        logging.info("Parse next page...")
         all_quotes.extend(get_quotes_from_page(next_page_soup))
         next_page_soup = get_next_page_soup(next_page_soup)
 
@@ -79,7 +91,7 @@ def write_quotes_to_csv(quotes: list[Quote], output_csv_path: str) -> None:
 def main(output_csv_path: str) -> None:
     quotes_list = get_all_pages_quotes()
     write_quotes_to_csv(quotes_list, output_csv_path)
-    print("Done!")
+    logging.info("Parsed all quotes...!")
 
 
 if __name__ == "__main__":
