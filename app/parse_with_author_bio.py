@@ -121,7 +121,7 @@ def write_quotes_to_csv(quotes: list[Quote], output_csv_path: str) -> None:
     rows = []
     for quote in quotes:
         # Get tuple without author_data ("text", "author", "tags")
-        tuple_quote = astuple(quote)[-1]
+        tuple_quote = astuple(quote)[:-1]
         # Tags list from list to str
         tags_list = tuple_quote[-1]
         fixed = tuple_quote[:-1] + (", ".join(tags_list),)
