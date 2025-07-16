@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+import csv
+from dataclasses import dataclass, fields, astuple
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -11,6 +13,9 @@ class Quote:
     text: str
     author: str
     tags: list[str]
+
+
+QUOTE_FIELDS = [field.name for field in fields(Quote)]
 
 
 def parse_one_quote(quote: Tag) -> Quote:
@@ -26,15 +31,52 @@ def parse_one_quote(quote: Tag) -> Quote:
     return Quote(text=text, author=author, tags=tags)
 
 
-def get_quotes() -> list[Quote]:
-    content = requests.get(BASE_URL).content
-    soup = BeautifulSoup(content, "html.parser")
-    quotes = soup.select("div.quote")
+def get_page_soup(url: str) -> BeautifulSoup:
+    content = requests.get(url).content
+    return BeautifulSoup(content, "html.parser")
+
+
+def get_next_page_soup(page_soup: BeautifulSoup) -> BeautifulSoup | None:
+    next_li = page_soup.find("li", class_="next")
+    next_a = next_li.select_one("a") if next_li else None
+    next_href = next_a.get("href") if next_a else None
+
+    if next_href:
+        next_url = urljoin(BASE_URL, next_href)
+        return get_page_soup(next_url)
+    return None
+
+
+def get_quotes_from_page(page_soup: BeautifulSoup) -> list[Quote]:
+    quotes = page_soup.select("div.quote")
     return [parse_one_quote(quote) for quote in quotes]
 
 
+def get_all_pages_quotes() -> list[Quote]:
+    # Main Page
+    print("Parse first page...")
+    page_soup = get_page_soup(BASE_URL)
+    all_quotes = get_quotes_from_page(page_soup)
+    # Next page
+    next_page_soup = get_next_page_soup(page_soup)
+    while next_page_soup:
+        print("Parse next page...")
+        all_quotes.extend(get_quotes_from_page(next_page_soup))
+        next_page_soup = get_next_page_soup(next_page_soup)
+
+    return all_quotes
+
+
+def write_quotes_to_csv(quotes: list[Quote], output_csv_path: str) -> None:
+    with open(output_csv_path, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(QUOTE_FIELDS)
+        writer.writerows([astuple(quote) for quote in quotes])
+
+
 def main(output_csv_path: str) -> None:
-    print(get_quotes())
+    quotes_list = get_all_pages_quotes()
+    write_quotes_to_csv(quotes_list, output_csv_path)
 
 
 if __name__ == "__main__":
