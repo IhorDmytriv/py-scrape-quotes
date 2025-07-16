@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup, Tag
 
 BASE_URL = "https://quotes.toscrape.com/"
 
+session = requests.Session()
+
 
 @dataclass
 class Quote:
@@ -32,8 +34,8 @@ def parse_one_quote(quote: Tag) -> Quote:
 
 
 def get_page_soup(url: str) -> BeautifulSoup:
-    content = requests.get(url).content
-    return BeautifulSoup(content, "html.parser")
+    response = session.get(url)
+    return BeautifulSoup(response.text, "html.parser")
 
 
 def get_next_page_soup(page_soup: BeautifulSoup) -> BeautifulSoup | None:
@@ -77,6 +79,7 @@ def write_quotes_to_csv(quotes: list[Quote], output_csv_path: str) -> None:
 def main(output_csv_path: str) -> None:
     quotes_list = get_all_pages_quotes()
     write_quotes_to_csv(quotes_list, output_csv_path)
+    print("Done!")
 
 
 if __name__ == "__main__":
